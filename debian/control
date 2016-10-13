@@ -1,0 +1,7 @@
+Package: rabbitmq-exporter
+Version: #VERSION#
+Section: base
+Priority: optional
+Architecture: amd64
+Maintainer: Efim Bakulin <e.v.bakulin@gmail.com>
+Description: Rabbitmq metrics exporter for prometheus

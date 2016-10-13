@@ -20,6 +20,14 @@ BIN_DIR                 ?= $(shell pwd)
 DOCKER_IMAGE_NAME       ?= rabbitmq-exporter
 DOCKER_IMAGE_TAG        ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
+BIN_NAME:=rabbitmq_exporter
+VERSION=1.0.1
+PACK_NAME=rabbitmq-exporter_$(VERSION)
+DEB_PATH=$(PACK_NAME)/DEBIAN
+PACKAGE=$(PACK_NAME).deb
+REPO_URL:=http://apt.octopus.compcenter.org
+REPO_NAME:=octopus-dev
+
 
 all: format build test
 
@@ -61,5 +69,20 @@ promu:
 	@GOOS=$(shell uname -s | tr A-Z a-z) \
 	        GOARCH=$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))) \
 	        $(GO) get -v github.com/prometheus/promu
+
+deb:
+	mkdir -p $(PACK_NAME)/usr/local/bin
+	mkdir -p $(DEB_PATH)
+	cp -r debian/control $(DEB_PATH)/control
+	sed -i s/#VERSION#/$(VERSION)/g "$(DEB_PATH)/control"
+	cp -r debian/files/* $(PACK_NAME)/
+	cp $(BIN_NAME) $(PACK_NAME)/usr/local/bin/
+	dpkg-deb --build $(PACK_NAME)
+
+publish:
+	curl -v -X POST -F file=@$(PACKAGE) $(REPO_URL)/api/files/$(PACKAGE)
+	curl -v -X POST $(REPO_URL)/api/repos/$(REPO_NAME)/file/$(PACKAGE)
+	curl -v -X PUT -H 'Content-Type: application/json' --data '{}' $(REPO_URL)/api/publish/$(REPO_NAME)/trusty
+
 
 .PHONY: all style format build test vet tarball tarballs docker promu
